@@ -5,7 +5,7 @@ version := "1.0-SNAPSHOT"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.13.3"
+scalaVersion := "2.13.8"
 
 val zioVersion    = "1.0.3"
 val doobieVersion = "0.9.2"

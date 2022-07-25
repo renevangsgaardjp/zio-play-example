@@ -9,7 +9,7 @@ object UserRepositorySpec extends DefaultRunnableSpec {
     testM("test get user") {
       for {
         user <- UserRepository.getUser
-      } yield assert(user)(equalTo("User from localhost:666"))
+      } yield assert(user)(equalTo("USER! from localhost:666"))
     }.provideCustomLayer(testDatabase >>> UserRepository.live)
   )
 
