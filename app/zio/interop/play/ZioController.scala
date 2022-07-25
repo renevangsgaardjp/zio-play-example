@@ -1,10 +1,12 @@
 package zio.interop.play
 import com.google.inject.Inject
-import models.{Database, UserRepository}
 import models.UserRepository.UserRepository
-import play.api.mvc.{Action, ActionBuilder, BaseController, BodyParser, ControllerComponents, Result}
-import zio.interop.play.ZioController.{AppEnv, live}
+import models.{Database, UserRepository}
+import play.api.mvc._
 import zio._
+import zio.interop.play.ZioController.{AppEnv, live}
+
+import scala.concurrent.ExecutionContext
 
 abstract class ZioController @Inject() (protected val zc: ZioComponents)
     extends BaseController
@@ -52,7 +54,8 @@ trait ZioActionBuilderSyntax {
 
 final case class ZioComponents @Inject() (
     database: Database,
-    cc: ControllerComponents
+    cc: ControllerComponents,
+    ec: ExecutionContext
 ) extends ZioActionBuilderSyntax {
-  val runtime: Runtime[AppEnv] = zio.Runtime.unsafeFromLayer(live(database))
+  val runtime: Runtime[AppEnv] = zio.Runtime.unsafeFromLayer(live(database), RuntimeConfig.fromExecutionContext(ec))
 }
