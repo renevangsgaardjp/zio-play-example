@@ -1,32 +1,32 @@
 package models
-import javax.inject.{Inject, Singleton}
 import play.api.Application
 import zio._
+
+import javax.inject.{Inject, Singleton}
 
 // Controller
 // UserService @Inject(ZioComponents)
 
 object UserRepository {
-  type UserRepository = Has[Service]
+  type UserRepository = Service
 
   trait Service {
     def getUser: Task[String]
   }
 
-  def getUser: ZIO[UserRepository, Throwable, String] = ZIO.accessM[UserRepository](_.get.getUser)
+  def getUser: ZIO[UserRepository, Throwable, String] = ZIO.environmentWithZIO[UserRepository](_.get.getUser)
 
-  def testDatabase: ULayer[Has[Database]] = ???
+  def testDatabase: ULayer[Database] = ???
 
-  def application(app: Application): ULayer[Has[Application]] =
+  def application(app: Application): ULayer[Application] =
     ZLayer.succeed(app)
 
-  def realDatabase: ZLayer[Has[Application], Nothing, Has[Database]] =
-    ZLayer.fromService { (application: Application) =>
-      application.injector.instanceOf(classOf[Database])
-    }
+  def realDatabase: ZLayer[Application, Nothing, Database] = {
+    ZIO.service[Application].map(application => application.injector.instanceOf(classOf[Database])).toLayer
+  }
 
-  val live: ZLayer[Has[Database], Nothing, UserRepository] =
-    ZLayer.fromService((database: Database) => UserRepositoryLive(database))
+  val live: ZLayer[Database, Nothing, UserRepository] =
+    ZIO.service[Database].map(database => UserRepositoryLive(database)).toLayer
 }
 
 case class UserRepositoryLive(database: Database) extends UserRepository.Service {
