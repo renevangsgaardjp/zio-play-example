@@ -6,7 +6,7 @@ import zio.test._
 
 object UserRepositorySpec extends DefaultRunnableSpec {
   def spec = suite("UserRepository")(
-    testM("test get user") {
+    test("test get user") {
       for {
         user <- UserRepository.getUser
       } yield assert(user)(equalTo("USER! from localhost:666"))
