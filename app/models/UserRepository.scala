@@ -8,13 +8,12 @@ import javax.inject.{Inject, Singleton}
 // UserService @Inject(ZioComponents)
 
 object UserRepository {
-  type UserRepository = Service
-
+//  type UserRepository = Service
   trait Service {
     def getUser: Task[String]
   }
 
-  def getUser: ZIO[UserRepository, Throwable, String] = ZIO.environmentWithZIO[UserRepository](_.get.getUser)
+  def getUser: ZIO[Service, Throwable, String] = ZIO.environmentWithZIO[Service](_.get.getUser)
 
   def testDatabase: ULayer[Database] = ???
 
@@ -22,16 +21,16 @@ object UserRepository {
     ZLayer.succeed(app)
 
   def realDatabase: ZLayer[Application, Nothing, Database] = {
-    ZIO.service[Application].map(application => application.injector.instanceOf(classOf[Database])).toLayer
+    ZLayer.scoped(ZIO.service[Application].map(application => application.injector.instanceOf(classOf[Database])))
   }
 
-  val live: ZLayer[Database, Nothing, UserRepository] =
-    ZIO.service[Database].map(database => UserRepositoryLive(database)).toLayer
+  val live: ZLayer[Database, Nothing, Service] =
+    ZLayer.scoped(ZIO.service[Database].map(database => UserRepositoryLive(database)))
 }
 
 case class UserRepositoryLive(database: Database) extends UserRepository.Service {
   override def getUser: Task[String] =
-    Task { s"USER! from ${database.connectionString}" }
+    ZIO.attempt { s"USER! from ${database.connectionString}" }
 }
 
 trait Database {

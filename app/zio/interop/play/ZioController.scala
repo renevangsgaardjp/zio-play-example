@@ -1,10 +1,9 @@
 package zio.interop.play
 import com.google.inject.Inject
-import models.UserRepository.UserRepository
 import models.{Database, UserRepository}
 import play.api.mvc._
 import zio._
-import zio.interop.play.ZioController.{AppEnv, live}
+import zio.interop.play.ZioController.AppEnv
 
 import scala.concurrent.ExecutionContext
 
@@ -17,13 +16,13 @@ abstract class ZioController @Inject() (protected val zc: ZioComponents)
 }
 
 object ZioController {
-  type AppEnv = ZEnv with UserRepository
+  type AppEnv = UserRepository.Service
 
   // Arguments should be what we are grabbing from Guice/Play
   def live(database: Database): ULayer[AppEnv] = {
     val dbLayer        = ZLayer.succeed(database)
     val userRepository = dbLayer >>> UserRepository.live
-    ZEnv.live ++ userRepository
+    ZLayer.make[AppEnv](userRepository)
   }
 }
 
@@ -32,16 +31,12 @@ trait ZioActionBuilderSyntax {
   implicit final class ActionBuilderOps[+R[_], B](val actionBuilder: ActionBuilder[R, B]) {
 
     def zio[E](zioActionBody: R[B] => ZIO[AppEnv, E, Result]): Action[B] = actionBuilder.async { request =>
-      runtime.unsafeRunToFuture(
-        ioToTask(zioActionBody(request))
-      )
+      Unsafe.unsafe(implicit unsafe => runtime.unsafe.runToFuture(ioToTask(zioActionBody(request))))
     }
 
     def zio[E, A](bp: BodyParser[A])(zioActionBody: R[A] => ZIO[AppEnv, E, Result]): Action[A] =
       actionBuilder(bp).async { request =>
-        runtime.unsafeRunToFuture(
-          ioToTask(zioActionBody(request))
-        )
+        Unsafe.unsafe(implicit unsafe => runtime.unsafe.runToFuture(ioToTask(zioActionBody(request))))
       }
   }
   private def ioToTask[E, A](io: ZIO[AppEnv, E, A]) =
@@ -57,5 +52,5 @@ final case class ZioComponents @Inject() (
     cc: ControllerComponents,
     ec: ExecutionContext
 ) extends ZioActionBuilderSyntax {
-  val runtime: Runtime[AppEnv] = zio.Runtime.unsafeFromLayer(live(database), RuntimeConfig.fromExecutionContext(ec))
+  val runtime: Runtime[AppEnv] = Unsafe.unsafe(implicit unsafe => Runtime.unsafe.fromLayer(ZioController.live(database)))
 }

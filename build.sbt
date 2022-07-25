@@ -7,7 +7,7 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
 scalaVersion := "2.13.8"
 
-val zioVersion    = "2.0.0-RC1"
+val zioVersion    = "2.0.0"
 val doobieVersion = "0.9.2"
 
 val doobie: Seq[ModuleID] = Seq(

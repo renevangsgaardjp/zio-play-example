@@ -1,10 +1,9 @@
 package controllers
 
-import javax.inject._
 import models.UserRepository
-import play.api.mvc._
-import syntax.ZioSyntax.TaskOps
 import zio.interop.play.{ZioComponents, ZioController}
+
+import javax.inject._
 
 /** This controller creates an `Action` to handle HTTP requests to the
   * application's home page.
